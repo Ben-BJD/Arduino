@@ -142,7 +142,7 @@ void setup()
   morseCharMap['8'] = 34;
   morseCharMap['9'] = 35;
 
-  message = "war and greed";
+  message = "war and greed are bad";
 }
 
 // the loop function runs over and over again forever

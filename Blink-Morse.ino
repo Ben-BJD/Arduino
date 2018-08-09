@@ -1,148 +1,206 @@
-//Length of time in ms a short and long dash should stay bright on the led
-const int SHORT_DASH_BLNK_LEN = 500;
-const int LONG_DASH_BLNK_LEN = 1800;
+/*
+ * Maintainer: Ben-BJD ( https://github.com/Ben-BJD )
+ * Thanks to ShiftBit ( https://www.reddit.com/user/ShiftBit ) for optimisation advice!
+ */
 
-const int MORSE_CHAR_COUNT = 36;
-const int MORSE_SEQ_MAX_LEN = 6;
+const int DOT_BLNK_LEN = 500;//Length of a dot is one unit
+const int DASH_BLNK_LEN = 1500;//Length of a dash is three units
 
-//constants used for Morse code definition map
-const char SHORT_DASH = '.';
-const char LONG_DASH = '-';
+//Here the first 1 is a start flag and the reaminder of the byte indicates the sequence.
+//For example A's sequence is 01 or dot-dash. 
+//The preceeding zeroes are shifted out until the start flag is found which is also discarded.
+const byte morse_table[] PROGMEM = {
+  'A', 0B00000101,
+  'B', 0B00011000,
+  'C', 0B00011010,
+  'D', 0B00001100,
+  'E', 0B00000010,
+  'F', 0B00010010,
+  'G', 0B00001110,
+  'H', 0B00010000,
+  'I', 0B00000100,
+  'J', 0B00010111,
+  'K', 0B00001101,
+  'L', 0B00010100,
+  'M', 0B00000111,
+  'N', 0B00000110,
+  'O', 0B00001111,
+  'P', 0B00010110,
+  'Q', 0B00011101,
+  'R', 0B00001010,
+  'S', 0B00001000,
+  'T', 0B00000011,
+  'U', 0B00001001,
+  'V', 0B00010001,
+  'W', 0B00001011,
+  'X', 0B00011001,
+  'Y', 0B00011011,
+  'Z', 0B00011100,
 
-//definitions for morse code characters 
-char morseDict[MORSE_CHAR_COUNT][MORSE_SEQ_MAX_LEN] = 
-{
-  
-  {SHORT_DASH,LONG_DASH,'\0'},
-  {LONG_DASH,SHORT_DASH,SHORT_DASH,SHORT_DASH,'\0'},
-  {LONG_DASH,SHORT_DASH,LONG_DASH,SHORT_DASH,'\0'},
-  {LONG_DASH,SHORT_DASH,SHORT_DASH,'\0'},
-  {SHORT_DASH,'\0'},
-  {SHORT_DASH,SHORT_DASH,LONG_DASH,SHORT_DASH,'\0'},
-  {LONG_DASH,LONG_DASH,SHORT_DASH,'\0'},
-  {SHORT_DASH,SHORT_DASH,SHORT_DASH,SHORT_DASH,'\0'},
-  {SHORT_DASH,SHORT_DASH,'\0'},
-  {SHORT_DASH,LONG_DASH,LONG_DASH,LONG_DASH,'\0'},
-  {LONG_DASH,SHORT_DASH,LONG_DASH,'\0'},
-  {SHORT_DASH,LONG_DASH,SHORT_DASH,SHORT_DASH,'\0'},
-  {LONG_DASH,LONG_DASH,'\0'},
-  {LONG_DASH,SHORT_DASH,'\0'},
-  {LONG_DASH,LONG_DASH,LONG_DASH,'\0'},
-  {SHORT_DASH,LONG_DASH,LONG_DASH,SHORT_DASH,'\0'},
-  {LONG_DASH,LONG_DASH,SHORT_DASH,LONG_DASH,'\0'},
-  {SHORT_DASH,LONG_DASH,SHORT_DASH,'\0'},
-  {SHORT_DASH,SHORT_DASH,SHORT_DASH,'\0'},
-  {LONG_DASH,'\0'},
-  {SHORT_DASH,SHORT_DASH,LONG_DASH,'\0'},
-  {SHORT_DASH,SHORT_DASH,SHORT_DASH,LONG_DASH,'\0'},
-  {SHORT_DASH,LONG_DASH,LONG_DASH,'\0'},
-  {LONG_DASH,SHORT_DASH,SHORT_DASH,LONG_DASH,'\0'},
-  {LONG_DASH,SHORT_DASH,LONG_DASH,LONG_DASH,'\0'},
-  {LONG_DASH,LONG_DASH,SHORT_DASH,SHORT_DASH,'\0'},
-  {LONG_DASH,LONG_DASH,LONG_DASH,LONG_DASH,LONG_DASH,'\0'},
-  {SHORT_DASH,LONG_DASH,LONG_DASH,LONG_DASH,LONG_DASH,'\0'},
-  {SHORT_DASH,SHORT_DASH,LONG_DASH,LONG_DASH,LONG_DASH,'\0'},
-  {SHORT_DASH,SHORT_DASH,SHORT_DASH,LONG_DASH,LONG_DASH,'\0'},
-  {SHORT_DASH,SHORT_DASH,SHORT_DASH,SHORT_DASH,LONG_DASH,'\0'},
-  {SHORT_DASH,SHORT_DASH,SHORT_DASH,SHORT_DASH,SHORT_DASH,'\0'},
-  {LONG_DASH,SHORT_DASH,SHORT_DASH,SHORT_DASH,SHORT_DASH,'\0'},
-  {LONG_DASH,LONG_DASH,SHORT_DASH,SHORT_DASH,SHORT_DASH,'\0'},
-  {LONG_DASH,LONG_DASH,LONG_DASH,SHORT_DASH,SHORT_DASH,'\0'},
-  {LONG_DASH,LONG_DASH,LONG_DASH,LONG_DASH,SHORT_DASH,'\0'}
-  
+  '0', 0B00111111,
+  '1', 0B00101111,
+  '2', 0B00100111,
+  '3', 0B00100011,
+  '4', 0B00100001,
+  '5', 0B00100000,
+  '6', 0B00110000,
+  '7', 0B00111000,
+  '8', 0B00111100,
+  '9', 0B00111110,
+
+  '#', 0B11000101,  // /BK - Break in conversation
+  '+', 0B00101010,  // /AR - Message separator, start new message / telegram
+  ',', 0B01110011,
+  '-', 0B01100001,
+  '.', 0B01010101,
+  '/', 0B00110010,
+  '=', 0B00110001, // BT - Start of new section / new paragraph
+  '?', 0B01001100, // Please say again
+  '^', 0B01000101,  // /SK - End of contact / End of work
+
+  0xff  // end-of-table marker
 };
-
-//An index of the Morse dictionary for convinience 
-char morseCharMap[MORSE_CHAR_COUNT];
 
 char* message;
 char currSignal = '\0';
 int currMsgIdx = 0;
+uint8_t ledPin = 13;
 
 void blinkDelay(int duration)
 {
-  digitalWrite(13, HIGH);   // turn the LED on (HIGH is the voltage level)
+  digitalWrite(ledPin, HIGH);   // turn the LED on (HIGH is the voltage level)
   delay(duration);// wait for the set duration
-  digitalWrite(13, LOW);    // turn the LED off by making the voltage LOW
-  delay(SHORT_DASH_BLNK_LEN);  //delay in between signals
+  digitalWrite(ledPin, LOW);    // turn the LED off by making the voltage LOW
 }
 
-void blinkMorseChar(char letter)
+void sendDot()
 {
-  if( letter == ' ' )
-  {
-    delay(1000);
-  }
-  else
-  {
-    char* seq = morseDict[ morseCharMap[letter] ];
-    
-    for(int i=0;i<MORSE_SEQ_MAX_LEN;i++)
-    {
-      if( seq[i] == '\0' )
-      {
-        break;
-      }
-      else
-      {
-        int duration = SHORT_DASH_BLNK_LEN;
+  blinkDelay(DOT_BLNK_LEN);
+}
+
+void sendDash()
+{
+  blinkDelay(DASH_BLNK_LEN);
+}
+
+void sendMorseChar(byte letter)
+{
+  byte bp = 0;
+  byte ditordah = 0;
+  bool first = false;
+  unsigned int j = 0;
+  unsigned int ele_len = DOT_BLNK_LEN;
   
-        if( seq[i] == LONG_DASH )
+  switch (letter)
+  {
+    case ' ':
+      delay(ele_len * 7);//there is a seven unit delay between words
+      break;
+
+    case 8:
+    case 127:
+      break;
+
+    default:
+    // while bp is not our end of table flag
+      while (bp != 0xff)
+      {
+        // we should be pointing as an alpha/digit/puncutation character in our table
+        bp = pgm_read_byte_near(morse_table + j);
+
+        // have we reached the end of our table ?
+        if (bp != 0xff)
         {
-           duration = LONG_DASH_BLNK_LEN;
+          // is the chacater we're pointing to in the Morse table the same as the
+          // character we want to send ?
+          if (bp == letter)
+          {
+            // yes - so bump our pointer to the Morse code chacter bit pattern for
+            // the chacater we want to send
+            j++;
+
+            // now get the bit pattern into bp
+            bp = pgm_read_byte_near(morse_table + j);
+
+            // start processing the bit pattern. ie: A = 00000101 = DOT DASH
+            for (int i = 0; i < 8; i++)
+            {
+              // get the high bit of the pattern into our ditordah variable 
+              /*
+                  ie: 
+                       00000101
+                  AND  10000000 
+                    =  00000000
+               */
+              ditordah = (bp & 128);
+
+              // have we found our start flag yet ?
+              if (first == false)
+              {
+                // if no, is it our start flag
+                if (ditordah != 0)
+                {
+                  // yes - set our flag
+                  first = true;
+                }
+
+                // now shift the bit pattern one bit to the left and continue
+                bp = (bp << 1); //ie: 00000101 becomes 00001010
+
+                /*
+
+                  Continuing with the example A this will be shifted here until we reach
+
+                  10100000
+
+                  Then the first flag will be set. And the sequence 01 will be used below for the remainder of the loop
+                 
+                 */
+                
+                continue;
+              }
+
+              // if we've seen our start flag then send the dash or dot based on the bit
+              if (ditordah != 0)
+              {
+                sendDash();
+              }
+              else
+              {
+                sendDot();
+              }
+
+              //we have a one unit delay between parts of the letter
+              delay(ele_len);
+  
+              // now shift the bit pattern one bit to the left and continue
+              
+              bp = (bp << 1);//continue shifting bits in the sequence until complete
+            }
+
+            // there is a three element delay between chacaters.  the sendDash() or
+            // sendDot() functions already add a one element delay so we delay
+            // two more element times.
+            delay(ele_len * 2);
+            return;
+          }
         }
-        
-        blinkDelay(duration);
-        
+
+        j++;
+        j++;
       }
-    }
+
+      break;
   }
 }
 
 // the setup function runs once when you press reset or power the board
 void setup() 
 {
-  // initialize digital pin 13 as an output. (Same pin used in Blink)
-  pinMode(13, OUTPUT);
+   // initialize digital pin 13 as an output. (Same pin used in Blink)
+  pinMode(ledPin, OUTPUT);
 
-  morseCharMap['a'] = 0;
-  morseCharMap['b'] = 1;
-  morseCharMap['c'] = 2;
-  morseCharMap['d'] = 3;
-  morseCharMap['e'] = 4;
-  morseCharMap['f'] = 5;
-  morseCharMap['g'] = 6;
-  morseCharMap['h'] = 7;
-  morseCharMap['i'] = 8;
-  morseCharMap['j'] = 9;
-  morseCharMap['k'] = 10;
-  morseCharMap['l'] = 11;
-  morseCharMap['m'] = 12;
-  morseCharMap['n'] = 13;
-  morseCharMap['o'] = 14;
-  morseCharMap['p'] = 15;
-  morseCharMap['q'] = 16;
-  morseCharMap['r'] = 17;
-  morseCharMap['s'] = 18;
-  morseCharMap['t'] = 19;
-  morseCharMap['u'] = 20;
-  morseCharMap['v'] = 21;
-  morseCharMap['w'] = 22;
-  morseCharMap['x'] = 23;
-  morseCharMap['y'] = 24;
-  morseCharMap['z'] = 25;
-  morseCharMap['0'] = 26;
-  morseCharMap['1'] = 27;
-  morseCharMap['2'] = 28;
-  morseCharMap['3'] = 29;
-  morseCharMap['4'] = 30;
-  morseCharMap['5'] = 31;
-  morseCharMap['6'] = 32;
-  morseCharMap['7'] = 33;
-  morseCharMap['8'] = 34;
-  morseCharMap['9'] = 35;
-
-  message = "war and greed are bad";
+  message = "WAR, GREED, CRUELTY AND DOMINATION ARE THE ROOT CAUSE OF ALL SUFFERING.";
 }
 
 // the loop function runs over and over again forever
@@ -163,7 +221,7 @@ void loop()
     }
   }
   
-  blinkMorseChar( message[currMsgIdx] );
+  sendMorseChar( message[currMsgIdx] );
   currSignal = message[currMsgIdx];
   
 }
